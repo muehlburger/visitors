@@ -49,13 +49,9 @@ func main() {
 		stmt.Exec()
 		log.Println("Visits Index created")
 
-		repo := repository.NewMeasurementSQLite(db)
+		repo := repository.NewStorage(db)
 		service = measurement.NewService(repo)
 	})
-
-	for i := 0; i < 1024; i++ {
-
-	}
 
 	doEvery(5*time.Second, crawl)
 }

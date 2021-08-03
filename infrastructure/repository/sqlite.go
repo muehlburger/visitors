@@ -8,17 +8,17 @@ import (
 	"visitors.it-zt.at/domain/entity"
 )
 
-type MeasurementSQLite struct {
+type Storage struct {
 	db *sql.DB
 }
 
-func NewMeasurementSQLite(db *sql.DB) *MeasurementSQLite {
-	return &MeasurementSQLite{
+func NewStorage(db *sql.DB) *Storage {
+	return &Storage{
 		db: db,
 	}
 }
 
-func (r *MeasurementSQLite) Create(e *entity.Measurement) (entity.ID, error) {
+func (r *Storage) Create(e *entity.Measurement) (entity.ID, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		log.Fatalf("Could not create transaction: %v", err)
