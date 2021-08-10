@@ -2,14 +2,14 @@ package entity
 
 import "time"
 
-type Measurement struct {
+type Reading struct {
 	ID        ID
 	CreatedAt int64
 	Quantity  int
 }
 
-func NewMeasurement(quantity int) (*Measurement, error) {
-	m := &Measurement{
+func NewReading(quantity int) (*Reading, error) {
+	m := &Reading{
 		ID:        NewID(),
 		Quantity:  quantity,
 		CreatedAt: time.Now().Unix(),
@@ -23,7 +23,7 @@ func NewMeasurement(quantity int) (*Measurement, error) {
 	return m, nil
 }
 
-func (m *Measurement) Validate() error {
+func (m *Reading) Validate() error {
 	if m.Quantity < 0 || m.Quantity > 1500 {
 		return ErrInvalidEntity
 	}

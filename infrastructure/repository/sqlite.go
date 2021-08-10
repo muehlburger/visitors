@@ -18,7 +18,7 @@ func NewStorage(db *sql.DB) *Storage {
 	}
 }
 
-func (r *Storage) Create(e *entity.Measurement) (entity.ID, error) {
+func (r *Storage) Create(e *entity.Reading) (entity.ID, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		log.Fatalf("Could not create transaction: %v", err)

@@ -16,8 +16,8 @@ func NewService(r Repository) *Service {
 }
 
 // CreateMeasurement creates a measurement
-func (s *Service) CreateMeasurement(quantity int) (entity.ID, error) {
-	m, err := entity.NewMeasurement(quantity)
+func (s *Service) CreateReading(quantity int) (entity.ID, error) {
+	m, err := entity.NewReading(quantity)
 	if err != nil {
 		return m.ID, err
 	}

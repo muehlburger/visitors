@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -16,44 +18,95 @@ import (
 )
 
 var (
-	once    sync.Once
 	service *measurement.Service
 )
 
-func main() {
-	once.Do(func() {
-		db, err := sql.Open("sqlite3", "visitors.db")
-		if err != nil {
-			log.Fatalf("Could not create database file: %v", err)
-		}
+const version string = "1.0.0"
 
-		createTableStmt := `CREATE TABLE IF NOT EXISTS visits (
+type config struct {
+	env string
+	db  struct {
+		file        string
+		maxOpenCons int
+		maxIdleCons int
+		maxIdleTime string
+	}
+}
+
+type application struct {
+	config config
+	logger *log.Logger
+}
+
+func main() {
+	var cfg config
+
+	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
+	flag.StringVar(&cfg.db.file, "db-file", os.Getenv("SQLITE_DB_FILE"), "SQLite database file. E.g. visitors.db")
+
+	flag.Parse()
+
+	app := &application{
+		config: cfg,
+		logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
+	}
+
+	db, err := openDB(cfg)
+	if err != nil {
+		app.logger.Fatalf("Could not create database file: %v", err)
+	}
+
+	app.initDB(db)
+	defer db.Close()
+	app.logger.Printf("database connection pool established")
+
+	repo := repository.NewStorage(db)
+	service = measurement.NewService(repo)
+
+	app.logger.Printf("crawler started on %s", cfg.env)
+	doEvery(5*time.Second, crawl)
+}
+
+func (app *application) initDB(db *sql.DB) {
+	createTableStmt := `CREATE TABLE IF NOT EXISTS visits (
 				"id" STRING NOT NULL PRIMARY KEY,
 				"quantity" INTEGER,
 				"created_at" DATETIME
 			);`
 
-		log.Println("Create visits table ...")
-		stmt, err := db.Prepare(createTableStmt)
-		if err != nil {
-			log.Fatalf("Could not create table: %v", err)
-		}
-		stmt.Exec()
-		log.Println("Visits table created")
+	log.Println("create visits table ...")
+	stmt, err := db.Prepare(createTableStmt)
+	if err != nil {
+		app.logger.Fatalf("could not create table: %v", err)
+	}
+	stmt.Exec()
+	app.logger.Println("visits table created")
 
-		createIndexStmt := "CREATE UNIQUE INDEX IF NOT EXISTS idx_visits_id ON visits(id);"
-		stmt, err = db.Prepare(createIndexStmt)
-		if err != nil {
-			log.Fatalf("Could not create table: %v", err)
-		}
-		stmt.Exec()
-		log.Println("Visits Index created")
+	createIndexStmt := "CREATE UNIQUE INDEX IF NOT EXISTS idx_visits_id ON visits(id);"
+	stmt, err = db.Prepare(createIndexStmt)
+	if err != nil {
+		app.logger.Fatalf("could not create table: %v", err)
+	}
+	stmt.Exec()
+	log.Println("visits index created")
 
-		repo := repository.NewStorage(db)
-		service = measurement.NewService(repo)
-	})
+}
 
-	doEvery(5*time.Second, crawl)
+func openDB(cfg config) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", cfg.db.file)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err = db.PingContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 func doEvery(d time.Duration, f func(time.Time)) {
@@ -68,9 +121,7 @@ func crawl(t time.Time) {
 	)
 	c.OnHTML(`div[class="schwimmbadzaehlerBox"]`, func(e *colly.HTMLElement) {
 		v := e.ChildText("strong:first-child")
-		currentVisitors := visitors(v)
-		fmt.Printf("%v;%v;%d;%.0f\n", t, t.Unix(), currentVisitors, fraction(currentVisitors))
-		service.CreateMeasurement(currentVisitors)
+		service.CreateReading(visitors(v))
 	})
 
 	c.Visit("https://www.gleisdorf.at/wellenbad_314.htm")
@@ -85,9 +136,4 @@ func visitors(text string) int {
 		fmt.Printf("Error occured: %v", err)
 	}
 	return visitors
-}
-
-// fraction calculates the fraction of visitors out of 1500
-func fraction(visitors int) float64 {
-	return float64(visitors) / 1500 * 100
 }

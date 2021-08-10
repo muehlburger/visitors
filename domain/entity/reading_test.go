@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewMeasurement(t *testing.T) {
-	m, err := entity.NewMeasurement(4)
+	m, err := entity.NewReading(4)
 	assert.Nil(t, err)
 	assert.Equal(t, m.Quantity, 4)
 	assert.NotNil(t, m.ID)
@@ -48,7 +48,8 @@ func TestMeasurementValidate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		_, err := entity.NewMeasurement(tc.quantity)
+		_, err := entity.NewReading(tc.quantity)
+		assert.Equal(t, err, tc.want)
 		assert.Equal(t, err, tc.want)
 	}
 }

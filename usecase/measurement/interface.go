@@ -11,7 +11,7 @@ type Reader interface {
 
 // Writer write Measurements
 type Writer interface {
-	Create(e *entity.Measurement) (entity.ID, error)
+	Create(e *entity.Reading) (entity.ID, error)
 	//Update(e *entity.Measurement) error
 	//Delete(id entity.ID)
 }
@@ -23,10 +23,10 @@ type Repository interface {
 
 // UseCases define the measurement use cases
 type UseCase interface {
-	GetMeasurement(id entity.ID) (*entity.Measurement, error)
-	SearchMeasurement(query string) ([]*entity.Measurement, error)
-	ListMeasurements() ([]*entity.Measurement, error)
-	CreateMeasurement(quantity int) (entity.ID, error)
-	UpdateMeasurement(e *entity.Measurement) error
-	DeleteMeasurement(id entity.ID) error
+	GetReading(id entity.ID) (*entity.Reading, error)
+	SearchReading(query string) ([]*entity.Reading, error)
+	ListReadings() ([]*entity.Reading, error)
+	CreateReading(quantity int) (entity.ID, error)
+	UpdateReading(e *entity.Reading) error
+	DeleteReading(id entity.ID) error
 }
